@@ -1248,6 +1248,13 @@
                     <button type="submit" class="submit-button">Create Account</button>
                 </form>
 
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                    <p style="text-align: center; color: #666; margin-bottom: 10px; font-size: 0.9em;">Have save data from another device?</p>
+                    <button onclick="document.getElementById('importFileInput').click()" style="width: 100%; padding: 12px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em;">
+                        📤 Import Save Data
+                    </button>
+                </div>
+
                 <button class="close-button" onclick="closeAccount()">Close</button>
             </div>
 
@@ -1305,7 +1312,22 @@
                 <div class="profile-section">
                     <h4>💾 Save Information</h4>
                     <p style="color: #666; margin-bottom: 10px;">Last saved: <span id="lastSaveTime">Never</span></p>
-                    <p style="color: #666; font-size: 0.9em;">✓ Your progress is automatically saved every 10 seconds and after each action</p>
+                    <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">✓ Your progress is automatically saved every 10 seconds and after each action</p>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button onclick="exportSaveData()" style="flex: 1; padding: 10px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                            📥 Export Save Data
+                        </button>
+                        <button onclick="document.getElementById('importFileInput').click()" style="flex: 1; padding: 10px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                            📤 Import Save Data
+                        </button>
+                    </div>
+                    <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importSaveData(event)">
+                    <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 3px solid #2196f3;">
+                        <p style="color: #1976d2; font-size: 0.85em; margin: 0; line-height: 1.4;">
+                            <strong>💡 Cross-Platform Saves:</strong> Export downloads a .json file. Transfer this file to another device and import it to continue your progress anywhere!
+                        </p>
+                    </div>
                 </div>
 
                 <button class="logout-button" onclick="handleLogout()">Logout</button>
@@ -2642,6 +2664,131 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Export/Import Save Data Functions
+        function exportSaveData() {
+            if (!currentUser) {
+                alert('You must be logged in to export save data!');
+                return;
+            }
+
+            // Gather all data
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                username: currentUser,
+                accountData: JSON.parse(localStorage.getItem('obrienAccounts') || '{}')[currentUser],
+                saveData: JSON.parse(localStorage.getItem(`obrienSave_${currentUser}`) || '{}')
+            };
+
+            // Create blob and download
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `obrien-save-${currentUser}-${Date.now()}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            alert('Save data exported successfully! You can now import this file on any device.');
+        }
+
+        function importSaveData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    
+                    // Validate data structure
+                    if (!importData.version || !importData.username) {
+                        alert('Invalid save file format! Missing required fields.');
+                        return;
+                    }
+
+                    if (!importData.saveData || typeof importData.saveData !== 'object') {
+                        alert('Invalid save file format! Save data is missing or corrupted.');
+                        return;
+                    }
+
+                    // Validate username format
+                    const username = importData.username.trim();
+                    if (username.length < 1 || username.length > 50) {
+                        alert('Invalid username in save file!');
+                        return;
+                    }
+
+                    // Check if username already exists
+                    const accounts = JSON.parse(localStorage.getItem('obrienAccounts') || '{}');
+                    
+                    let finalUsername = username;
+                    let counter = 1;
+                    
+                    // If username exists, ask user what to do
+                    if (accounts[username]) {
+                        const overwrite = confirm(`Account "${username}" already exists.\n\nClick OK to OVERWRITE the existing account.\nClick Cancel to import as a NEW account with a different name.`);
+                        
+                        if (!overwrite) {
+                            // Find available username
+                            while (accounts[`${username}_${counter}`]) {
+                                counter++;
+                            }
+                            finalUsername = `${username}_${counter}`;
+                        }
+                    }
+
+                    // Prepare account data
+                    const accountData = importData.accountData || {
+                        password: 'imported' + Math.random().toString(36).substring(7),
+                        createdAt: importData.exportDate || new Date().toISOString()
+                    };
+
+                    // Save account data
+                    accounts[finalUsername] = accountData;
+                    localStorage.setItem('obrienAccounts', JSON.stringify(accounts));
+
+                    // Save game data
+                    localStorage.setItem(`obrienSave_${finalUsername}`, JSON.stringify(importData.saveData));
+
+                    // Show success message with details
+                    const pointsImported = formatNumber(importData.saveData.points || 0);
+                    const ordersImported = formatNumber(importData.saveData.ordersCompleted || 0);
+                    const gemsImported = formatNumber(importData.saveData.gems || 0);
+                    
+                    alert(`✅ Save data imported successfully!\n\nUsername: ${finalUsername}\nO'Brien Points: ${pointsImported}\nOrders: ${ordersImported}\nGems: ${gemsImported}\n\n${finalUsername === username ? 'Account data has been updated!' : 'A new account has been created!'}\n\nYou can now log in to continue playing.`);
+                    
+                    // If currently logged in, log out
+                    if (currentUser) {
+                        saveProgress();
+                        localStorage.removeItem('currentUser');
+                        currentUser = null;
+                        if (autoSaveInterval) {
+                            clearInterval(autoSaveInterval);
+                        }
+                        showAuthView();
+                        hideLoggedInHeader();
+                        resetGameState();
+                    }
+                    
+                    closeAccount();
+                    
+                } catch (error) {
+                    alert('❌ Error importing save data!\n\n' + error.message + '\n\nMake sure you selected a valid save file exported from this game.');
+                    console.error('Import error:', error);
+                }
+            };
+            
+            reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
         }
     </script>
 </body>
