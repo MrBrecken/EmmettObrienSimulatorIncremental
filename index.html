@@ -471,6 +471,31 @@
             transform: none;
         }
 
+        .buy-buttons-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .buy-max-button {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .buy-max-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .buy-max-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .achievements-section {
             background: #f8f8f8;
             border-radius: 15px;
@@ -1267,7 +1292,7 @@
 <body>
     <div class="game-container">
         <div class="header">
-            <h1>🍔 EMMETT O'BRIEN SIMULATOR 🍟<span id="borIcons"></span></h1>
+            <h1>🍔 EMMETT O'BRIEN SIMULATOR 🍟<span id="upgradeIcons"></span></h1>
             <p>Welcome to McDonald's! Make orders, earn O'Brien Points!</p>
             <div id="loggedInStatus" class="logged-in-status">
                 ✓ Logged in as <span id="headerUsername"></span> - Progress auto-saved
@@ -1439,10 +1464,13 @@
                 <div class="shop-items">
                     <div class="shop-item">
                         <h3>📜 The Bill Of Rights</h3>
-                        <p>Multiplies your O'Brien points by 2 every time you complete an order! Price increases by 5x with each purchase.</p>
+                        <p>Multiplies your O'Brien points by 2 every time you complete an order! Price increases by 2x with each purchase.</p>
                         <div class="shop-item-footer">
                             <span class="price" id="borPrice">10 Points</span>
-                            <button class="buy-button" onclick="buyBillOfRights()">Buy</button>
+                            <div class="buy-buttons-container">
+                                <button class="buy-button" onclick="buyBillOfRights()">Buy</button>
+                                <button class="buy-max-button" onclick="buyMaxBillOfRights()">Buy Max</button>
+                            </div>
                         </div>
                         <small style="color: #2196f3; display: block; margin-top: 10px; font-weight: bold; font-size: 1em;">Owned: <span id="borCount">0</span></small>
                     </div>
@@ -1479,9 +1507,38 @@
                         <p>Multiply your O'Brien points per order by 125%! Price increases by 10K with each purchase.</p>
                         <div class="shop-item-footer">
                             <span class="price" id="articlesPrice">10K Points</span>
-                            <button class="buy-button" onclick="buyArticles()">Buy</button>
+                            <div class="buy-buttons-container">
+                                <button class="buy-button" onclick="buyArticles()">Buy</button>
+                                <button class="buy-max-button" onclick="buyMaxArticles()">Buy Max</button>
+                            </div>
                         </div>
                         <small style="color: #2196f3; display: block; margin-top: 10px; font-weight: bold; font-size: 1em;">Owned: <span id="articlesCount">0</span></small>
+                    </div>
+
+                    <div class="shop-item">
+                        <h3>📮 Stamp Act</h3>
+                        <p>Adds a 110% boost to O'Brien point gain per order! Stack this upgrade for massive point bonuses. Price increases by 2x with each purchase.</p>
+                        <div class="shop-item-footer">
+                            <span class="price" id="stampActPrice">50K Points</span>
+                            <div class="buy-buttons-container">
+                                <button class="buy-button" onclick="buyStampAct()">Buy</button>
+                                <button class="buy-max-button" onclick="buyMaxStampAct()">Buy Max</button>
+                            </div>
+                        </div>
+                        <small style="color: #2196f3; display: block; margin-top: 10px; font-weight: bold; font-size: 1em;">Owned: <span id="stampActCount">0</span></small>
+                    </div>
+
+                    <div class="shop-item">
+                        <h3>🪖 World War I</h3>
+                        <p>Adds 100 flat O'Brien points to every order completed! Stack this upgrade for guaranteed bonus points. Price increases by 1.5x with each purchase.</p>
+                        <div class="shop-item-footer">
+                            <span class="price" id="ww1Price">2K Points</span>
+                            <div class="buy-buttons-container">
+                                <button class="buy-button" onclick="buyWW1()">Buy</button>
+                                <button class="buy-max-button" onclick="buyMaxWW1()">Buy Max</button>
+                            </div>
+                        </div>
+                        <small style="color: #2196f3; display: block; margin-top: 10px; font-weight: bold; font-size: 1em;">Owned: <span id="ww1Count">0</span></small>
                     </div>
 
                     <div class="shop-item">
@@ -1898,6 +1955,14 @@
         let articlesPrice = 10000;
         let articlesMultiplier = 1;
         
+        let stampActOwned = 0;
+        let stampActPrice = 50000;
+        let stampActBoost = 0; // Total percentage boost (110% per purchase)
+        
+        let ww1Owned = 0;
+        let ww1Price = 2000;
+        let ww1PointsPerOrder = 0; // Total flat points (100 per purchase)
+        
         let btd1Owned = false;
         let gemChance = 0;
         
@@ -2174,6 +2239,14 @@
             
             let pointsToAdd = 1 * pointMultiplier * articlesMultiplier;
             
+            // Apply Stamp Act boost (percentage)
+            if (stampActBoost > 0) {
+                pointsToAdd *= (1 + stampActBoost / 100);
+            }
+            
+            // Apply World War I flat bonus
+            pointsToAdd += ww1PointsPerOrder;
+            
             // Apply Brecken bonus (10x points)
             if (currentUser && currentUser.toLowerCase() === 'brecken') {
                 pointsToAdd *= 10;
@@ -2299,10 +2372,14 @@
             document.getElementById('borCount').textContent = billOfRightsOwned;
             document.getElementById('articlesPrice').textContent = formatNumber(articlesPrice) + ' Points';
             document.getElementById('articlesCount').textContent = articlesOwned;
+            document.getElementById('stampActPrice').textContent = formatNumber(stampActPrice) + ' Points';
+            document.getElementById('stampActCount').textContent = stampActOwned;
+            document.getElementById('ww1Price').textContent = formatNumber(ww1Price) + ' Points';
+            document.getElementById('ww1Count').textContent = ww1Owned;
         }
 
-        function updateBORIcons() {
-            const iconsContainer = document.getElementById('borIcons');
+        function updateUpgradeIcons() {
+            const iconsContainer = document.getElementById('upgradeIcons');
             iconsContainer.innerHTML = '';
             
             if (billOfRightsOwned > 0) {
@@ -2311,6 +2388,32 @@
                 icon.textContent = `📜 x${billOfRightsOwned}`;
                 iconsContainer.appendChild(icon);
             }
+            
+            if (articlesOwned > 0) {
+                const icon = document.createElement('span');
+                icon.className = 'bor-icon';
+                icon.textContent = `📄 x${articlesOwned}`;
+                iconsContainer.appendChild(icon);
+            }
+            
+            if (stampActOwned > 0) {
+                const icon = document.createElement('span');
+                icon.className = 'bor-icon';
+                icon.textContent = `📮 x${stampActOwned}`;
+                iconsContainer.appendChild(icon);
+            }
+            
+            if (ww1Owned > 0) {
+                const icon = document.createElement('span');
+                icon.className = 'bor-icon';
+                icon.textContent = `🪖 x${ww1Owned}`;
+                iconsContainer.appendChild(icon);
+            }
+        }
+        
+        // Keep old function name for compatibility
+        function updateBORIcons() {
+            updateUpgradeIcons();
         }
 
         function buyBillOfRights() {
@@ -2549,10 +2652,164 @@
                 
                 document.getElementById('points').textContent = formatNumber(points);
                 updateShopDisplay();
+                updateUpgradeIcons();
                 
                 alert(`Articles of Confederation purchased! Your points multiplier is now ${articlesMultiplier.toFixed(2)}x!`);
                 
                 // Auto-save if user is logged in
+                if (currentUser) {
+                    saveProgress();
+                    updateUserStats();
+                }
+            } else {
+                alert('Not enough O\'Brien Points!');
+            }
+        }
+
+        function buyStampAct() {
+            if (points >= stampActPrice) {
+                points -= stampActPrice;
+                stampActOwned++;
+                stampActBoost += 110; // Add 110% boost
+                stampActPrice = Math.floor(stampActPrice * 2);
+                
+                document.getElementById('points').textContent = formatNumber(points);
+                updateShopDisplay();
+                updateUpgradeIcons();
+                
+                alert(`Stamp Act purchased! You now have +${stampActBoost}% bonus to point gain!`);
+                
+                // Auto-save if user is logged in
+                if (currentUser) {
+                    saveProgress();
+                    updateUserStats();
+                }
+            } else {
+                alert('Not enough O\'Brien Points!');
+            }
+        }
+
+        function buyWW1() {
+            if (points >= ww1Price) {
+                points -= ww1Price;
+                ww1Owned++;
+                ww1PointsPerOrder += 100; // Add 100 flat points
+                ww1Price = Math.floor(ww1Price * 1.5);
+                
+                document.getElementById('points').textContent = formatNumber(points);
+                updateShopDisplay();
+                updateUpgradeIcons();
+                
+                alert(`World War I purchased! You now earn +${ww1PointsPerOrder} bonus points per order!`);
+                
+                // Auto-save if user is logged in
+                if (currentUser) {
+                    saveProgress();
+                    updateUserStats();
+                }
+            } else {
+                alert('Not enough O\'Brien Points!');
+            }
+        }
+
+        // Buy Max functions
+        function buyMaxBillOfRights() {
+            let purchased = 0;
+            while (points >= billOfRightsPrice) {
+                points -= billOfRightsPrice;
+                billOfRightsOwned++;
+                pointMultiplier *= 2;
+                billOfRightsPrice = Math.floor(billOfRightsPrice * 2);
+                purchased++;
+                
+                // Award badge on first purchase
+                if (billOfRightsOwned === 1 && !billOfRightsBadgeEarned) {
+                    billOfRightsBadgeEarned = true;
+                    addBillOfRightsBadge();
+                }
+            }
+            
+            if (purchased > 0) {
+                document.getElementById('points').textContent = formatNumber(points);
+                updateShopDisplay();
+                updateUpgradeIcons();
+                alert(`Purchased ${purchased} Bill of Rights! Your point multiplier is now ${pointMultiplier}x!`);
+                
+                if (currentUser) {
+                    saveProgress();
+                    updateUserStats();
+                }
+            } else {
+                alert('Not enough O\'Brien Points!');
+            }
+        }
+
+        function buyMaxArticles() {
+            let purchased = 0;
+            while (points >= articlesPrice) {
+                points -= articlesPrice;
+                articlesOwned++;
+                articlesMultiplier *= 1.25;
+                articlesPrice += 10000;
+                purchased++;
+            }
+            
+            if (purchased > 0) {
+                document.getElementById('points').textContent = formatNumber(points);
+                updateShopDisplay();
+                updateUpgradeIcons();
+                alert(`Purchased ${purchased} Articles of Confederation! Your points multiplier is now ${articlesMultiplier.toFixed(2)}x!`);
+                
+                if (currentUser) {
+                    saveProgress();
+                    updateUserStats();
+                }
+            } else {
+                alert('Not enough O\'Brien Points!');
+            }
+        }
+
+        function buyMaxStampAct() {
+            let purchased = 0;
+            while (points >= stampActPrice) {
+                points -= stampActPrice;
+                stampActOwned++;
+                stampActBoost += 110;
+                stampActPrice = Math.floor(stampActPrice * 2);
+                purchased++;
+            }
+            
+            if (purchased > 0) {
+                document.getElementById('points').textContent = formatNumber(points);
+                updateShopDisplay();
+                updateUpgradeIcons();
+                alert(`Purchased ${purchased} Stamp Acts! You now have +${stampActBoost}% bonus to point gain!`);
+                
+                if (currentUser) {
+                    saveProgress();
+                    updateUserStats();
+                }
+            } else {
+                alert('Not enough O\'Brien Points!');
+            }
+        }
+
+        function buyMaxWW1() {
+            let purchased = 0;
+            while (points >= ww1Price) {
+                points -= ww1Price;
+                ww1Owned++;
+                ww1PointsPerOrder += 100;
+                ww1Price = Math.floor(ww1Price * 1.5);
+                purchased++;
+            }
+            
+            if (purchased > 0) {
+                document.getElementById('points').textContent = formatNumber(points);
+                updateShopDisplay();
+                updateUpgradeIcons();
+                alert(`Purchased ${purchased} World War I upgrades! You now earn +${ww1PointsPerOrder} bonus points per order!`);
+                
                 if (currentUser) {
                     saveProgress();
                     updateUserStats();
@@ -2825,6 +3082,14 @@
             
             let pointsToAdd = 1 * pointMultiplier * articlesMultiplier;
             
+            // Apply Stamp Act boost (percentage)
+            if (stampActBoost > 0) {
+                pointsToAdd *= (1 + stampActBoost / 100);
+            }
+            
+            // Apply World War I flat bonus
+            pointsToAdd += ww1PointsPerOrder;
+            
             // Apply Brecken bonus (10x points)
             if (currentUser && currentUser.toLowerCase() === 'brecken') {
                 pointsToAdd *= 10;
@@ -3056,6 +3321,12 @@
                 articlesOwned: articlesOwned,
                 articlesPrice: articlesPrice,
                 articlesMultiplier: articlesMultiplier,
+                stampActOwned: stampActOwned,
+                stampActPrice: stampActPrice,
+                stampActBoost: stampActBoost,
+                ww1Owned: ww1Owned,
+                ww1Price: ww1Price,
+                ww1PointsPerOrder: ww1PointsPerOrder,
                 btd1Owned: btd1Owned,
                 gemChance: gemChance,
                 stevenBradleyOwned: stevenBradleyOwned,
@@ -3120,6 +3391,12 @@
                 articlesOwned = saveData.articlesOwned || 0;
                 articlesPrice = saveData.articlesPrice || 10000;
                 articlesMultiplier = saveData.articlesMultiplier || 1;
+                stampActOwned = saveData.stampActOwned || 0;
+                stampActPrice = saveData.stampActPrice || 50000;
+                stampActBoost = saveData.stampActBoost || 0;
+                ww1Owned = saveData.ww1Owned || 0;
+                ww1Price = saveData.ww1Price || 2000;
+                ww1PointsPerOrder = saveData.ww1PointsPerOrder || 0;
                 btd1Owned = saveData.btd1Owned || false;
                 gemChance = saveData.gemChance || 0;
                 stevenBradleyOwned = saveData.stevenBradleyOwned || false;
@@ -3240,6 +3517,12 @@
             articlesOwned = 0;
             articlesPrice = 10000;
             articlesMultiplier = 1;
+            stampActOwned = 0;
+            stampActPrice = 50000;
+            stampActBoost = 0;
+            ww1Owned = 0;
+            ww1Price = 2000;
+            ww1PointsPerOrder = 0;
             btd1Owned = false;
             gemChance = 0;
             stevenBradleyOwned = false;
@@ -3372,6 +3655,28 @@
                 item.innerHTML = `
                     <span class="item-name">📄 Articles of Confederation</span>
                     <span class="item-count">x${articlesOwned}</span>
+                `;
+                itemsList.appendChild(item);
+            }
+            
+            if (stampActOwned > 0) {
+                hasItems = true;
+                const item = document.createElement('div');
+                item.className = 'owned-item';
+                item.innerHTML = `
+                    <span class="item-name">📮 Stamp Act</span>
+                    <span class="item-count">x${stampActOwned}</span>
+                `;
+                itemsList.appendChild(item);
+            }
+            
+            if (ww1Owned > 0) {
+                hasItems = true;
+                const item = document.createElement('div');
+                item.className = 'owned-item';
+                item.innerHTML = `
+                    <span class="item-name">🪖 World War I</span>
+                    <span class="item-count">x${ww1Owned}</span>
                 `;
                 itemsList.appendChild(item);
             }
