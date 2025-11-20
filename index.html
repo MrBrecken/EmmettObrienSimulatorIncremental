@@ -1423,6 +1423,9 @@
                 <div class="profile-header">
                     <h3>👤 Profile</h3>
                     <div class="username" id="currentUsername"></div>
+                    <button onclick="openUsernameChange()" style="margin-top: 10px; padding: 8px 15px; background: #2196f3; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 0.9em; font-weight: bold;">
+                        ✏️ Change Username
+                    </button>
                     <div class="user-title-display" id="userTitleDisplay" onclick="openTitleSelector()">Click to change title</div>
                     <div id="breckenBadge" style="display: none;" class="brecken-badge">⭐ CREATOR - 10x Point Bonus!</div>
                     <div class="member-since" id="memberSince">Member since: ...</div>
@@ -1501,6 +1504,36 @@
             <h2>🎖️ Select Your Title</h2>
             <div class="titles-list" id="titlesList"></div>
             <button class="close-button" onclick="closeTitleSelector()">Close</button>
+        </div>
+    </div>
+
+    <div class="title-modal" id="usernameChangeModal">
+        <div class="title-content">
+            <h2>✏️ Change Username</h2>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 15px;">Current username: <strong id="currentUsernameDisplay"></strong></p>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;">Choose a new username. Your progress and stats will be preserved.</p>
+                
+                <div id="usernameChangeError" class="error-message"></div>
+                <div id="usernameChangeSuccess" class="success-message"></div>
+                
+                <div class="form-group">
+                    <label>New Username</label>
+                    <input type="text" id="newUsername" placeholder="Enter new username" minlength="3" maxlength="20" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em;">
+                    <small style="color: #999; display: block; margin-top: 5px;">3-20 characters. Letters, numbers, underscores, and hyphens only.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="usernameChangePassword" placeholder="Enter your password" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em;">
+                    <small style="color: #999; display: block; margin-top: 5px;">Verify your password to change username</small>
+                </div>
+                
+                <button onclick="changeUsername()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; border: none; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 10px;">
+                    Change Username
+                </button>
+            </div>
+            <button class="close-button" onclick="closeUsernameChange()">Cancel</button>
         </div>
     </div>
 
@@ -1623,6 +1656,51 @@
         let currentUser = null;
         let autoSaveInterval = null;
         let selectedTitle = null;
+
+        // Username validation - filter inappropriate words
+        const bannedWords = [
+            // Slurs and offensive terms
+            'nigger', 'nigga', 'nig', 'negro', 'coon', 'spook', 'chink', 'gook', 'jap', 'kike', 
+            'wetback', 'beaner', 'spic', 'towelhead', 'raghead', 'sandnigger', 'paki', 'muzzie',
+            'faggot', 'fag', 'dyke', 'tranny', 'shemale', 'homo',
+            'retard', 'retarded', 'mongoloid', 'downie',
+            // Extreme profanity
+            'cunt', 'bitch', 'whore', 'slut', 'pussy',
+            // Hateful terms
+            'nazi', 'hitler', 'kkk', 'swastika',
+            // Sexual/explicit
+            'porn', 'sex', 'penis', 'dick', 'cock', 'vagina', 'fuck', 'shit', 'ass',
+            // Add variations with numbers
+            'n1gger', 'n1gga', 'f4ggot', 'fvck', 'sh1t', 'b1tch'
+        ];
+
+        function validateUsername(username) {
+            const lowerUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+            
+            // Check length
+            if (username.length < 3 || username.length > 20) {
+                return { valid: false, message: 'Username must be 3-20 characters long.' };
+            }
+            
+            // Check for banned words
+            for (const word of bannedWords) {
+                if (lowerUsername.includes(word)) {
+                    return { valid: false, message: 'Username contains inappropriate language. Please choose a different username.' };
+                }
+            }
+            
+            // Check for only numbers
+            if (/^\d+$/.test(username)) {
+                return { valid: false, message: 'Username cannot be only numbers.' };
+            }
+            
+            // Check for valid characters (letters, numbers, underscore, hyphen)
+            if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+                return { valid: false, message: 'Username can only contain letters, numbers, underscores, and hyphens.' };
+            }
+            
+            return { valid: true };
+        }
 
         // Title system
         const titles = [
@@ -2458,9 +2536,16 @@
             event.preventDefault();
             hideMessages();
             
-            const username = document.getElementById('signupUsername').value;
+            const username = document.getElementById('signupUsername').value.trim();
             const password = document.getElementById('signupPassword').value;
             const confirmPassword = document.getElementById('signupPasswordConfirm').value;
+            
+            // Validate username
+            const validation = validateUsername(username);
+            if (!validation.valid) {
+                showError(validation.message);
+                return;
+            }
             
             if (password !== confirmPassword) {
                 showError('Passwords do not match!');
@@ -3140,6 +3225,125 @@
             return 'none';
         }
 
+        // Username change functions
+        function openUsernameChange() {
+            document.getElementById('usernameChangeModal').style.display = 'block';
+            document.getElementById('currentUsernameDisplay').textContent = currentUser;
+            document.getElementById('newUsername').value = '';
+            document.getElementById('usernameChangePassword').value = '';
+            hideUsernameChangeMessages();
+        }
+
+        function closeUsernameChange() {
+            document.getElementById('usernameChangeModal').style.display = 'none';
+            hideUsernameChangeMessages();
+        }
+
+        function hideUsernameChangeMessages() {
+            document.getElementById('usernameChangeError').style.display = 'none';
+            document.getElementById('usernameChangeSuccess').style.display = 'none';
+        }
+
+        function showUsernameChangeError(message) {
+            const errorDiv = document.getElementById('usernameChangeError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('usernameChangeSuccess').style.display = 'none';
+        }
+
+        function showUsernameChangeSuccess(message) {
+            const successDiv = document.getElementById('usernameChangeSuccess');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('usernameChangeError').style.display = 'none';
+        }
+
+        function changeUsername() {
+            const newUsername = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('usernameChangePassword').value;
+            
+            hideUsernameChangeMessages();
+            
+            if (!newUsername || !password) {
+                showUsernameChangeError('Please fill in all fields.');
+                return;
+            }
+            
+            // Validate new username
+            const validation = validateUsername(newUsername);
+            if (!validation.valid) {
+                showUsernameChangeError(validation.message);
+                return;
+            }
+            
+            // Can't change to the same username
+            if (newUsername === currentUser) {
+                showUsernameChangeError('This is already your username!');
+                return;
+            }
+            
+            // Verify password
+            const accounts = JSON.parse(localStorage.getItem('obrienAccounts') || '{}');
+            if (!accounts[currentUser] || accounts[currentUser].password !== password) {
+                showUsernameChangeError('Incorrect password!');
+                return;
+            }
+            
+            // Check if new username already exists
+            if (accounts[newUsername]) {
+                showUsernameChangeError('Username already taken!');
+                return;
+            }
+            
+            // Save old username for cleanup
+            const oldUsername = currentUser;
+            
+            // Get current save data
+            const saveData = JSON.parse(localStorage.getItem(`obrienSave_${oldUsername}`) || '{}');
+            
+            // Create new account with same password
+            accounts[newUsername] = {
+                password: accounts[oldUsername].password,
+                createdAt: accounts[oldUsername].createdAt
+            };
+            
+            // Delete old account
+            delete accounts[oldUsername];
+            
+            // Save updated accounts
+            localStorage.setItem('obrienAccounts', JSON.stringify(accounts));
+            
+            // Move save data to new username
+            localStorage.setItem(`obrienSave_${newUsername}`, JSON.stringify(saveData));
+            localStorage.removeItem(`obrienSave_${oldUsername}`);
+            
+            // Update current user
+            currentUser = newUsername;
+            localStorage.setItem('currentUser', newUsername);
+            
+            // Delete old Firebase entry and create new one
+            if (firebaseEnabled) {
+                try {
+                    const sanitizedOldUsername = oldUsername.replace(/[.#$[\]]/g, '_');
+                    database.ref('leaderboard/' + sanitizedOldUsername).remove();
+                    syncToLeaderboard();
+                } catch (error) {
+                    console.error("Error updating Firebase username:", error);
+                }
+            }
+            
+            // Update displays
+            document.getElementById('currentUsername').textContent = newUsername;
+            document.getElementById('headerUsername').textContent = newUsername;
+            
+            showUsernameChangeSuccess('✅ Username changed successfully!');
+            
+            setTimeout(() => {
+                closeUsernameChange();
+                updateUserStats();
+            }, 1500);
+        }
+
         // Leaderboard functions
         function openLeaderboard() {
             document.getElementById('leaderboardModal').style.display = 'block';
@@ -3346,28 +3550,38 @@
                     }
 
                     // Validate username format
-                    const username = importData.username.trim();
+                    let username = importData.username.trim();
                     if (username.length < 1 || username.length > 50) {
                         alert('Invalid username in save file!');
                         return;
+                    }
+                    
+                    // Validate username content
+                    let finalUsername = username;
+                    const validation = validateUsername(username);
+                    if (!validation.valid) {
+                        alert('Invalid username in save file: ' + validation.message + '\n\nThe username will be sanitized.');
+                        // Sanitize the username by removing invalid characters
+                        finalUsername = username.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 20);
+                        if (finalUsername.length < 3) {
+                            finalUsername = 'imported_' + Math.random().toString(36).substring(7);
+                        }
                     }
 
                     // Check if username already exists
                     const accounts = JSON.parse(localStorage.getItem('obrienAccounts') || '{}');
                     
-                    let finalUsername = username;
-                    let counter = 1;
-                    
                     // If username exists, ask user what to do
-                    if (accounts[username]) {
-                        const overwrite = confirm(`Account "${username}" already exists.\n\nClick OK to OVERWRITE the existing account.\nClick Cancel to import as a NEW account with a different name.`);
+                    if (accounts[finalUsername]) {
+                        const overwrite = confirm(`Account "${finalUsername}" already exists.\n\nClick OK to OVERWRITE the existing account.\nClick Cancel to import as a NEW account with a different name.`);
                         
                         if (!overwrite) {
                             // Find available username
-                            while (accounts[`${username}_${counter}`]) {
+                            let counter = 1;
+                            while (accounts[`${finalUsername}_${counter}`]) {
                                 counter++;
                             }
-                            finalUsername = `${username}_${counter}`;
+                            finalUsername = `${finalUsername}_${counter}`;
                         }
                     }
 
