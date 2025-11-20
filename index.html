@@ -1753,16 +1753,128 @@
         
         // Number formatting function
         function formatNumber(num) {
-            if (num >= 1000000000) {
-                return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+            // Handle scientific notation for extremely large numbers (> 10^306)
+            if (num >= 1e306) {
+                const exponent = Math.floor(Math.log10(num));
+                const mantissa = num / Math.pow(10, exponent);
+                return mantissa.toFixed(2) + 'e' + exponent;
             }
-            if (num >= 1000000) {
-                return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            
+            // Define number abbreviations (short scale)
+            const abbreviations = [
+                { value: 1e303, symbol: 'Cen' },      // Centillion
+                { value: 1e300, symbol: 'NoVg' },     // Novemnonagintillion
+                { value: 1e297, symbol: 'OcVg' },     // Octononagintillion
+                { value: 1e294, symbol: 'SpVg' },     // Septennonagintillion
+                { value: 1e291, symbol: 'SxVg' },     // Sexnonagintillion
+                { value: 1e288, symbol: 'QiVg' },     // Quinnonagintillion
+                { value: 1e285, symbol: 'QaVg' },     // Quattuornonagintillion
+                { value: 1e282, symbol: 'TrVg' },     // Trenonagintillion
+                { value: 1e279, symbol: 'DuVg' },     // Duononagintillion
+                { value: 1e276, symbol: 'UnVg' },     // Unnonagintillion
+                { value: 1e273, symbol: 'Vg' },       // Vigintillion
+                { value: 1e270, symbol: 'NoTg' },     // Novemoctogintillion
+                { value: 1e267, symbol: 'OcTg' },     // Octooctogintillion
+                { value: 1e264, symbol: 'SpTg' },     // Septemoctogintillion
+                { value: 1e261, symbol: 'SxTg' },     // Sexoctogintillion
+                { value: 1e258, symbol: 'QiTg' },     // Quinoctogintillion
+                { value: 1e255, symbol: 'QaTg' },     // Quattuoroctogintillion
+                { value: 1e252, symbol: 'TrTg' },     // Tresoctogintillion
+                { value: 1e249, symbol: 'DuTg' },     // Duooctogintillion
+                { value: 1e246, symbol: 'UnTg' },     // Unoctogintillion
+                { value: 1e243, symbol: 'Og' },       // Octogintillion
+                { value: 1e240, symbol: 'NoSg' },     // Novemseptuagintillion
+                { value: 1e237, symbol: 'OcSg' },     // Octoseptuagintillion
+                { value: 1e234, symbol: 'SpSg' },     // Septemseptuagintillion
+                { value: 1e231, symbol: 'SxSg' },     // Sexseptuagintillion
+                { value: 1e228, symbol: 'QiSg' },     // Quinseptuagintillion
+                { value: 1e225, symbol: 'QaSg' },     // Quattuorseptuagintillion
+                { value: 1e222, symbol: 'TrSg' },     // Treseptuagintillion
+                { value: 1e219, symbol: 'DuSg' },     // Duoseptuagintillion
+                { value: 1e216, symbol: 'UnSg' },     // Unseptuagintillion
+                { value: 1e213, symbol: 'Sg' },       // Septuagintillion
+                { value: 1e210, symbol: 'NoSx' },     // Novemsexagintillion
+                { value: 1e207, symbol: 'OcSx' },     // Octosexagintillion
+                { value: 1e204, symbol: 'SpSx' },     // Septemsexagintillion
+                { value: 1e201, symbol: 'SxSx' },     // Sexsexagintillion
+                { value: 1e198, symbol: 'QiSx' },     // Quinsexagintillion
+                { value: 1e195, symbol: 'QaSx' },     // Quattuorsexagintillion
+                { value: 1e192, symbol: 'TrSx' },     // Tresexagintillion
+                { value: 1e189, symbol: 'DuSx' },     // Duosexagintillion
+                { value: 1e186, symbol: 'UnSx' },     // Unsexagintillion
+                { value: 1e183, symbol: 'Sx' },       // Sexagintillion
+                { value: 1e180, symbol: 'NoQg' },     // Novemquinquagintillion
+                { value: 1e177, symbol: 'OcQg' },     // Octoquinquagintillion
+                { value: 1e174, symbol: 'SpQg' },     // Septenquinquagintillion
+                { value: 1e171, symbol: 'SxQg' },     // Sexquinquagintillion
+                { value: 1e168, symbol: 'QiQg' },     // Quinquinquagintillion
+                { value: 1e165, symbol: 'QaQg' },     // Quattuorquinquagintillion
+                { value: 1e162, symbol: 'TrQg' },     // Tresquinquagintillion
+                { value: 1e159, symbol: 'DuQg' },     // Duoquinquagintillion
+                { value: 1e156, symbol: 'UnQg' },     // Unquinquagintillion
+                { value: 1e153, symbol: 'Qg' },       // Quinquagintillion
+                { value: 1e150, symbol: 'NoQd' },     // Novemquadragintillion
+                { value: 1e147, symbol: 'OcQd' },     // Octoquadragintillion
+                { value: 1e144, symbol: 'SpQd' },     // Septenquadragintillion
+                { value: 1e141, symbol: 'SxQd' },     // Sexquadragintillion
+                { value: 1e138, symbol: 'QiQd' },     // Quinquadragintillion
+                { value: 1e135, symbol: 'QaQd' },     // Quattuorquadragintillion
+                { value: 1e132, symbol: 'TrQd' },     // Tresquadragintillion
+                { value: 1e129, symbol: 'DuQd' },     // Duoquadragintillion
+                { value: 1e126, symbol: 'UnQd' },     // Unquadragintillion
+                { value: 1e123, symbol: 'Qd' },       // Quadragintillion
+                { value: 1e120, symbol: 'NoTr' },     // Novemtrigintillion
+                { value: 1e117, symbol: 'OcTr' },     // Octotrigintillion
+                { value: 1e114, symbol: 'SpTr' },     // Septentrigintillion
+                { value: 1e111, symbol: 'SxTr' },     // Sextrigintillion
+                { value: 1e108, symbol: 'QiTr' },     // Quintrigintillion
+                { value: 1e105, symbol: 'QaTr' },     // Quattuortrigintillion
+                { value: 1e102, symbol: 'TrTr' },     // Trestrigintillion
+                { value: 1e99, symbol: 'DuTr' },      // Duotrigintillion
+                { value: 1e96, symbol: 'UnTr' },      // Untrigintillion
+                { value: 1e93, symbol: 'Tr' },        // Trigintillion
+                { value: 1e90, symbol: 'NoVi' },      // Novemvigintillion
+                { value: 1e87, symbol: 'OcVi' },      // Octovigintillion
+                { value: 1e84, symbol: 'SpVi' },      // Septenvigintillion
+                { value: 1e81, symbol: 'SxVi' },      // Sexvigintillion
+                { value: 1e78, symbol: 'QiVi' },      // Quinvigintillion
+                { value: 1e75, symbol: 'QaVi' },      // Quattuorvigintillion
+                { value: 1e72, symbol: 'TrVi' },      // Tresvigintillion
+                { value: 1e69, symbol: 'DuVi' },      // Duovigintillion
+                { value: 1e66, symbol: 'UnVi' },      // Unvigintillion
+                { value: 1e63, symbol: 'Vi' },        // Vigintillion
+                { value: 1e60, symbol: 'Nd' },        // Novemdecillion
+                { value: 1e57, symbol: 'Od' },        // Octodecillion
+                { value: 1e54, symbol: 'Spd' },       // Septendecillion
+                { value: 1e51, symbol: 'Sxd' },       // Sexdecillion
+                { value: 1e48, symbol: 'Qid' },       // Quindecillion
+                { value: 1e45, symbol: 'Qad' },       // Quattuordecillion
+                { value: 1e42, symbol: 'Trd' },       // Tredecillion
+                { value: 1e39, symbol: 'Dd' },        // Duodecillion
+                { value: 1e36, symbol: 'Ud' },        // Undecillion
+                { value: 1e33, symbol: 'Dc' },        // Decillion
+                { value: 1e30, symbol: 'No' },        // Nonillion
+                { value: 1e27, symbol: 'Oc' },        // Octillion
+                { value: 1e24, symbol: 'Sp' },        // Septillion
+                { value: 1e21, symbol: 'Sx' },        // Sextillion
+                { value: 1e18, symbol: 'Qi' },        // Quintillion
+                { value: 1e15, symbol: 'Qa' },        // Quadrillion
+                { value: 1e12, symbol: 'T' },         // Trillion
+                { value: 1e9, symbol: 'B' },          // Billion
+                { value: 1e6, symbol: 'M' },          // Million
+                { value: 1e3, symbol: 'K' }           // Thousand
+            ];
+            
+            // Find appropriate abbreviation
+            for (let i = 0; i < abbreviations.length; i++) {
+                if (num >= abbreviations[i].value) {
+                    const formatted = (num / abbreviations[i].value).toFixed(1).replace(/\.0$/, '');
+                    return formatted + abbreviations[i].symbol;
+                }
             }
-            if (num >= 1000) {
-                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-            }
-            return num.toString();
+            
+            // Return as-is for numbers less than 1000
+            return Math.floor(num).toString();
         }
 
         let points = 0;
