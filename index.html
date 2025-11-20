@@ -242,6 +242,26 @@
             box-shadow: 0 8px 25px rgba(255, 152, 0, 0.6);
         }
 
+        .settings-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #607d8b 0%, #455a64 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            box-shadow: 0 5px 20px rgba(96, 125, 139, 0.4);
+            z-index: 100;
+            cursor: pointer;
+            border: none;
+        }
+
+        .settings-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(96, 125, 139, 0.6);
+        }
+
         .leaderboard-modal {
             display: none;
             position: fixed;
@@ -1023,6 +1043,110 @@
             background: #a00d24;
         }
 
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .settings-content {
+            background: white;
+            max-width: 500px;
+            margin: 100px auto;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(96, 125, 139, 0.5);
+        }
+
+        .settings-content h2 {
+            color: #607d8b;
+            font-size: 2em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .settings-section {
+            margin: 30px 0;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .settings-item-label {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-item-label h3 {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .settings-item-label p {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #4caf50;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+
         .congrats-message {
             text-align: center;
             padding: 20px;
@@ -1203,6 +1327,40 @@
     <button class="shop-button" onclick="openShop()">🛒 SHOP</button>
     <button class="account-button" onclick="openAccount()">👤 ACCOUNT</button>
     <button class="leaderboard-button" onclick="openLeaderboard()">🏆 LEADERBOARD</button>
+    <button class="settings-button" onclick="openSettings()">⚙️ SETTINGS</button>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <h2>⚙️ Settings</h2>
+            
+            <div class="settings-section">
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <h3>🎵 Background Music</h3>
+                        <p>Toggle background music on/off</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="musicToggle" checked onchange="toggleMusic()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <h3>🔊 Sound Effects</h3>
+                        <p>Toggle button click sounds</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sfxToggle" checked onchange="toggleSFX()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="close-button" onclick="closeSettings()">Close Settings</button>
+        </div>
+    </div>
 
     <div class="bill-of-rights-modal" id="billModal">
         <div class="bill-of-rights-content">
@@ -1652,6 +1810,117 @@
         let progress2 = 0;
         let progressInterval2 = null;
 
+        // ==========================================
+        // AUDIO SYSTEM
+        // ==========================================
+        
+        // Audio settings
+        let musicEnabled = true;
+        let sfxEnabled = true;
+        
+        // Background music
+        let backgroundMusic = null;
+        
+        // Initialize audio system
+        function initAudioSystem() {
+            // Load settings from localStorage
+            const savedMusicSetting = localStorage.getItem('musicEnabled');
+            const savedSFXSetting = localStorage.getItem('sfxEnabled');
+            
+            if (savedMusicSetting !== null) {
+                musicEnabled = savedMusicSetting === 'true';
+            }
+            if (savedSFXSetting !== null) {
+                sfxEnabled = savedSFXSetting === 'true';
+            }
+            
+            // Update toggle switches
+            document.getElementById('musicToggle').checked = musicEnabled;
+            document.getElementById('sfxToggle').checked = sfxEnabled;
+            
+            // Initialize background music
+            // TODO: Upload your background music mp3 file and update the path below
+            backgroundMusic = new Audio('background-music.mp3'); // UPDATE THIS WITH YOUR MP3 FILENAME
+            backgroundMusic.loop = true;
+            backgroundMusic.volume = 0.4; // 40% volume
+            
+            // Start background music if enabled
+            if (musicEnabled) {
+                // Auto-play might be blocked by browser, so we handle the promise
+                backgroundMusic.play().catch(err => {
+                    console.log('Auto-play prevented. Music will start on first user interaction.');
+                });
+            }
+            
+            // Add click event listeners to all buttons
+            addButtonSoundEffects();
+        }
+        
+        // Add sound effects to all buttons
+        function addButtonSoundEffects() {
+            // Get all buttons
+            const buttons = document.querySelectorAll('button');
+            
+            buttons.forEach(button => {
+                button.addEventListener('click', playButtonSound);
+            });
+        }
+        
+        // Play button click sound
+        function playButtonSound() {
+            if (!sfxEnabled) return;
+            
+            // Create a simple click sound using Web Audio API
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800; // Click frequency
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+        
+        // Settings modal functions
+        function openSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+        
+        function toggleMusic() {
+            musicEnabled = document.getElementById('musicToggle').checked;
+            localStorage.setItem('musicEnabled', musicEnabled);
+            
+            if (musicEnabled) {
+                backgroundMusic.play().catch(err => console.log('Music play failed:', err));
+            } else {
+                backgroundMusic.pause();
+            }
+        }
+        
+        function toggleSFX() {
+            sfxEnabled = document.getElementById('sfxToggle').checked;
+            localStorage.setItem('sfxEnabled', sfxEnabled);
+        }
+        
+        // Close settings modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const settingsModal = document.getElementById('settingsModal');
+            if (event.target === settingsModal) {
+                closeSettings();
+            }
+        });
+
         // Account system
         let currentUser = null;
         let autoSaveInterval = null;
@@ -1714,6 +1983,7 @@
         // Initialize on page load
         window.onload = function() {
             checkLoggedInUser();
+            initAudioSystem();
         };
 
         const menuItems = [
@@ -1736,6 +2006,11 @@
 
         function startMakingOrder() {
             if (currentOrder) return;
+            
+            // Ensure background music is playing (in case auto-play was blocked)
+            if (musicEnabled && backgroundMusic && backgroundMusic.paused) {
+                backgroundMusic.play().catch(err => console.log('Music play failed:', err));
+            }
 
             currentOrder = generateRandomOrder();
             progress = 0;
